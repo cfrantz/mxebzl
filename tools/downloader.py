@@ -45,6 +45,7 @@ METAPKG = {
         'jpeg',
         'libpng',
         'libwebp',
+        'ogg',
         'tiff',
         'vorbis',
         'zlib',
