@@ -10,7 +10,7 @@ create the compilers repository and specify your dependencies.
 git_repository(
     name = "mxebzl",
     remote = "https://github.com/cfrantz/mxebzl.git",
-    commit = "HEAD",
+    tag = "20170701_RC01",  # Adjust as needed
 )
 
 load("@mxebzl//tools:repository.bzl", "mxe_compilers")
@@ -78,4 +78,3 @@ $ bazel build \
 
 After the build finishes, there will be a `hello-windows.zip` in the `bazel-bin`
 directory.
-
