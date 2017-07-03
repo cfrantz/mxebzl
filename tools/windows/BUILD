@@ -39,6 +39,7 @@ filegroup(
     '//tools/windows/win32:gcc',
     '//tools/windows/win32:ld',
     '//tools/windows/win32:ar',
+    '//tools/windows/win32:nm',
     '@mingw_compiler_win32//:compiler_pieces',
   ],
 )
@@ -81,6 +82,7 @@ filegroup(
     '//tools/windows/win64:gcc',
     '//tools/windows/win64:ld',
     '//tools/windows/win64:ar',
+    '//tools/windows/win64:nm',
     '@mingw_compiler_win64//:compiler_pieces',
   ],
 )
