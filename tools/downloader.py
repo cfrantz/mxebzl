@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #############################################################################
 #
 # downloader.py - Download and Install Windows Cross Compiler for Bazel
