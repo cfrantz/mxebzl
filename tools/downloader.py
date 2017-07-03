@@ -64,6 +64,8 @@ LOCALS = []
 flags = argparse.ArgumentParser(description='Windows Cross Compiler Downloader')
 flags.add_argument('packages', metavar='PKG', type=str, nargs='*',
                    help='Packages to download')
+flags.add_argument('--cache', dest='cache', default=False, action='store_true',
+                   help='Reuse files in tmp cache (False)')
 flags.add_argument('--dest', default='tools/mxe',
                    help='Location to install packages')
 flags.add_argument('--list', default=False, action='store_true',
@@ -78,12 +80,10 @@ flags.add_argument('--wget_bin', default='/usr/bin/wget',
                    help='Location of wget binary (/usr/bin/wget)')
 flags.add_argument('--tar_bin', default='/bin/tar',
                    help='Location of tar binary (/bin/tar)')
-flags.add_argument('--win32', dest='win32', default=True, action='store_true',
-                   help='Install win32 packages (True)')
-flags.add_argument('--win64', dest='win64', default=True, action='store_true',
-                   help='Install win64 packages (True)')
-flags.add_argument('--nowin32', dest='win32', action='store_false')
-flags.add_argument('--nowin64', dest='win64', action='store_false')
+flags.add_argument('--win32', dest='win32', default=False, action='store_true',
+                   help='Install win32 packages (False)')
+flags.add_argument('--win64', dest='win64', default=False, action='store_true',
+                   help='Install win64 packages (False)')
 flags.add_argument('--force', action='store_true',
                    help='Install packages even if already installed.')
 
@@ -151,8 +151,11 @@ def download_pkg(args, pkg):
             print 'Skipping', name, pkg, 'because it is already installed.'
             continue
 
-        print 'Downloading', url
-        subprocess.call([args.wget_bin, url, '-O', local])
+        if args.cache and os.path.isfile(local):
+            print 'Already have %r in cache as %r' % (url, local)
+        else:
+            print 'Downloading', url
+            subprocess.call([args.wget_bin, url, '-O', local])
         LOCALS.append(local)
 
 def download_metapkg(args, pkg):
@@ -198,4 +201,3 @@ if __name__ == '__main__':
 
     download(args)
     install(args)
-
