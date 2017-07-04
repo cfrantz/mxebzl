@@ -56,6 +56,7 @@ SKIP_DLLS = [
     'USER32.DLL',
     'VERSION.DLL',
     'WINMM.DLL',
+    'WS2_32.DLL',
 ]
 
 REQUIRED_DLLS = {
@@ -87,10 +88,9 @@ def guess_exe(filename):
             return ARCH_TO_TARGET.get(arch, 'unknown')
     return None
 
-def guess_dlls(args, f):
+def guess_dlls(args, f, dlls):
     global missing_dlls
     peformat = None
-    dlls = []
     logging.info('Inspecting %r', f)
     cmd = [args.objdump_bin, '-p', f]
     data = subprocess.check_output(cmd)
@@ -104,9 +104,12 @@ def guess_dlls(args, f):
                 continue
             dllpath = os.path.join(args.mxe, 'usr', PREFIX[peformat],
                                    'bin', dll)
+            if dllpath in dlls:
+                continue
+
             if os.path.isfile(dllpath):
-                dlls.append(dllpath)
-                dlls.extend(guess_dlls(args, dllpath))
+                dlls.add(dllpath)
+                guess_dlls(args, dllpath, dlls)
             else:
                 logging.warn('The file %r does not exist.  Add it to skip_dlls '
                              'if it is a standard windows DLL.', dll)
@@ -114,9 +117,7 @@ def guess_dlls(args, f):
 
     for dll in REQUIRED_DLLS[peformat]:
         dll = os.path.join(args.mxe, 'usr', PREFIX[peformat], 'bin', dll)
-        dlls.append(dll)
-
-    return set(dlls)
+        dlls.add(dll)
 
 def set_objdump(args):
     args.objdump_bin = os.path.join(args.mxe, 'usr', 'bin',
@@ -136,7 +137,7 @@ def pack_zip(args):
                              f, target, args.target)
 
             set_objdump(args)
-            dlls.update(guess_dlls(args, f))
+            guess_dlls(args, f, dlls)
             files.append((f, True))
         else:
             files.append((f, False))
