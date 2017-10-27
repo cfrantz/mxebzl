@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #############################################################################
 #
 # zip4win.py - Create ZIP archive with binary, runfiles and DLLs
@@ -29,6 +29,9 @@ flags.add_argument('--skip_dlls', default=None,
                    help='DLL dependencies to ignore.')
 flags.add_argument('--target', default=None,
                    help='Target platform (win32 or win64).')
+flags.add_argument('--debuglog', default=None,
+                   help='File to write debug log into')
+
 
 TARGET = {
     'win32': 'i686-w64-mingw32.shared',
@@ -53,6 +56,7 @@ SKIP_DLLS = [
     'USER32.DLL',
     'VERSION.DLL',
     'WINMM.DLL',
+    'WS2_32.DLL',
 ]
 
 REQUIRED_DLLS = {
@@ -72,9 +76,10 @@ ARCH_TO_TARGET = {
 missing_dlls = 0
 
 def guess_exe(filename):
-    with file(filename, 'r') as f:
+    with open(filename, 'rb') as f:
         hdr = f.read(4096)
-        if hdr[:2] == 'MZ' and 'This program cannot be run in DOS mode' in hdr:
+        if (hdr[:2] == b'MZ' and
+                b'This program cannot be run in DOS mode' in hdr):
             logging.info('Detected legacy DOS header in %r', filename)
             (pehdr,) = struct.unpack('<L', hdr[0x3c:0x40])
             (signature, arch) = struct.unpack('<LH', hdr[pehdr:pehdr+6])
@@ -83,14 +88,14 @@ def guess_exe(filename):
             return ARCH_TO_TARGET.get(arch, 'unknown')
     return None
 
-def guess_dlls(args, f):
+def guess_dlls(args, f, dlls):
     global missing_dlls
     peformat = None
-    dlls = []
     logging.info('Inspecting %r', f)
     cmd = [args.objdump_bin, '-p', f]
     data = subprocess.check_output(cmd)
     for line in data.splitlines():
+        line = line.decode('utf-8')
         if 'file format ' in line:
             peformat = line.split()[-1]
         elif 'DLL Name: ' in line:
@@ -99,9 +104,12 @@ def guess_dlls(args, f):
                 continue
             dllpath = os.path.join(args.mxe, 'usr', PREFIX[peformat],
                                    'bin', dll)
+            if dllpath in dlls:
+                continue
+
             if os.path.isfile(dllpath):
-                dlls.append(dllpath)
-                dlls.extend(guess_dlls(args, dllpath))
+                dlls.add(dllpath)
+                guess_dlls(args, dllpath, dlls)
             else:
                 logging.warn('The file %r does not exist.  Add it to skip_dlls '
                              'if it is a standard windows DLL.', dll)
@@ -109,9 +117,7 @@ def guess_dlls(args, f):
 
     for dll in REQUIRED_DLLS[peformat]:
         dll = os.path.join(args.mxe, 'usr', PREFIX[peformat], 'bin', dll)
-        dlls.append(dll)
-
-    return set(dlls)
+        dlls.add(dll)
 
 def set_objdump(args):
     args.objdump_bin = os.path.join(args.mxe, 'usr', 'bin',
@@ -131,7 +137,7 @@ def pack_zip(args):
                              f, target, args.target)
 
             set_objdump(args)
-            dlls.update(guess_dlls(args, f))
+            guess_dlls(args, f, dlls)
             files.append((f, True))
         else:
             files.append((f, False))
@@ -152,14 +158,17 @@ def pack_zip(args):
 
 
 if __name__ == '__main__':
-    #logging.basicConfig(level=logging.INFO)
     args = flags.parse_args(sys.argv[1:])
+    if args.debuglog:
+        logging.basicConfig(level=logging.INFO, filename=args.debuglog)
+    logging.info('Python is %r', sys.version)
+
     if args.out == None:
         logging.error('No output file specified (use --out)')
         sys.exit(2)
 
     if args.skip_dlls:
         SKIP_DLLS += args.skip_dlls.split(',')
-    SKIP_DLLS = map(str.upper, SKIP_DLLS)
+    SKIP_DLLS = list(map(str.upper, SKIP_DLLS))
 
     pack_zip(args)
