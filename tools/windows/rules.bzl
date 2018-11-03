@@ -11,7 +11,7 @@ def _impl_winzip(ctx):
         args += ["--combine_zips=" + ','.join([f.path for f in ctx.files.zips])]
 
     args += [f.path for f in ctx.files.files]
-    print("args ", args)
+    # print("args ", args)
     ctx.action(
         executable = ctx.executable.zip4win,
         arguments = args,
