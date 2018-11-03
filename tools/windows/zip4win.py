@@ -27,6 +27,8 @@ flags.add_argument('--mxe', default=None,
                    help='Location of MXE install.')
 flags.add_argument('--skip_dlls', default=None,
                    help='DLL dependencies to ignore.')
+flags.add_argument('--combine_zips', default=None,
+                   help='Combine extra ZIP archives into this one.')
 flags.add_argument('--target', default=None,
                    help='Target platform (win32 or win64).')
 flags.add_argument('--debuglog', default=None,
@@ -57,6 +59,25 @@ SKIP_DLLS = [
     'VERSION.DLL',
     'WINMM.DLL',
     'WS2_32.DLL',
+    'CABINET.DLL',
+    'CRYPT32.dll',
+    'MSI.DLL',
+    'RPCRT4.dll',
+    'SHLWAPI.dll',
+    'VCRUNTIME140.DLL',
+    'api-ms-win-crt-conio-l1-1-0.dll',
+    'api-ms-win-crt-convert-l1-1-0.dll',
+    'api-ms-win-crt-environment-l1-1-0.dll',
+    'api-ms-win-crt-filesystem-l1-1-0.dll',
+    'api-ms-win-crt-heap-l1-1-0.dll',
+    'api-ms-win-crt-locale-l1-1-0.dll',
+    'api-ms-win-crt-math-l1-1-0.dll',
+    'api-ms-win-crt-process-l1-1-0.dll',
+    'api-ms-win-crt-runtime-l1-1-0.dll',
+    'api-ms-win-crt-stdio-l1-1-0.dll',
+    'api-ms-win-crt-string-l1-1-0.dll',
+    'api-ms-win-crt-time-l1-1-0.dll',
+    'api-ms-win-crt-utility-l1-1-0.dll',
 ]
 
 REQUIRED_DLLS = {
@@ -111,8 +132,9 @@ def guess_dlls(args, f, dlls):
                 dlls.add(dllpath)
                 guess_dlls(args, dllpath, dlls)
             else:
-                logging.warn('The file %r does not exist.  Add it to skip_dlls '
-                             'if it is a standard windows DLL.', dll)
+                logging.warning('The file %r does not exist.  Add it to '
+                                'skip_dlls if it is a standard windows DLL.',
+                                dll)
                 missing_dlls = missing_dlls + 1
 
     for dll in REQUIRED_DLLS[peformat]:
@@ -133,7 +155,7 @@ def pack_zip(args):
             if args.target == None:
                 args.target = target
             elif target != args.target:
-                logging.warn('Unexpected target for %r: %s (expected %s)',
+                logging.warning('Unexpected target for %r: %s (expected %s)',
                              f, target, args.target)
 
             set_objdump(args)
@@ -155,6 +177,12 @@ def pack_zip(args):
 
         for d in dlls:
             z.write(d, os.path.basename(d))
+
+        if args.combine_zips:
+            for archive in args.combine_zips.split(','):
+                with zipfile.ZipFile(archive, 'r') as ar:
+                    for f in ar.namelist():
+                        z.writestr(f, ar.read(f))
 
 
 if __name__ == '__main__':

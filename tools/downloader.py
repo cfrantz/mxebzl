@@ -52,7 +52,9 @@ METAPKG = {
     ]
 }
 
-PKGS = {}
+PKGS = {
+#    'python': 'python_3.7.1.tar.xz'
+}
 
 TARGETS = {
     'win32': 'i686-w64-mingw32.shared',
@@ -64,6 +66,8 @@ LOCALS = []
 flags = argparse.ArgumentParser(description='Windows Cross Compiler Downloader')
 flags.add_argument('packages', metavar='PKG', type=str, nargs='*',
                    help='Packages to download')
+flags.add_argument('--addons', dest='addons', default='',
+                   help='Additiona packages dir not part of the MXE distribution.')
 flags.add_argument('--cache', dest='cache', default=False, action='store_true',
                    help='Reuse files in tmp cache (False)')
 flags.add_argument('--dest', default='tools/mxe',
@@ -113,6 +117,17 @@ def download_pkg_list(args):
         (pkgname, suffix) = filename.split('_')
         PKGS[pkgname] = filename
 
+def collect_addons(args):
+    if not args.addons:
+        return
+
+    prefix = 'mxe-' + TARGETS['win64'] + '-'
+    for filename in os.listdir(args.addons):
+        if filename.startswith('mxe-') and filename.endswith('.tar.xz'):
+            filename = filename.replace(prefix, '')
+            (pkgname, suffix) = filename.split('_')
+            PKGS[pkgname] = filename
+
 def list_packages():
     print "Packages:"
     for k in sorted(PKGS.keys()):
@@ -141,6 +156,7 @@ def download_pkg(args, pkg):
         filename = 'mxe-' + t + '-' + PKGS[pkg]
         url = args.webroot + '/mxe-' + t + '/' + filename
         local =  os.path.join(args.tmp, filename)
+        addon =  os.path.join(args.addons, filename)
 
         # Transform the target and package names to how they appear on the
         # filesystem, then check if the package has already been installed.
@@ -151,7 +167,10 @@ def download_pkg(args, pkg):
             print 'Skipping', name, pkg, 'because it is already installed.'
             continue
 
-        if args.cache and os.path.isfile(local):
+        if args.addons and os.path.isfile(addon):
+            print 'Using addon file %r' % addon
+            local = addon
+        elif args.cache and os.path.isfile(local):
             print 'Already have %r in cache as %r' % (url, local)
         else:
             print 'Downloading', url
@@ -194,6 +213,7 @@ if __name__ == '__main__':
 
     if args.list or args.packages:
         download_pkg_list(args)
+        collect_addons(args)
 
     if (args.list):
         list_packages()

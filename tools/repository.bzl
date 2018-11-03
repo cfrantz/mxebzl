@@ -8,10 +8,12 @@
 def _mxe_compiler(ctx):
     print("Initializing %s compiler repository" % ctx.attr.arch)
     ctx.symlink(ctx.attr.downloader_py, 'downloader.py')
-    
+    addons = ctx.path(ctx.attr.addons)
+
     cmd = [ctx.attr.python2,
            'downloader.py',
            '--dest=mxe',
+           '--addons=' + str(addons.dirname),
            '--' + ctx.attr.arch]
 
     if ctx.attr.cache:
@@ -27,6 +29,8 @@ def _mxe_compiler(ctx):
 mxe_compiler = repository_rule(
     implementation=_mxe_compiler,
     attrs = {
+        "addons": attr.label(default="@mxebzl//addons:BUILD",
+                             allow_files=True),
         "arch": attr.string(mandatory=True),
         "build_file": attr.label(mandatory=True),
         "cache": attr.bool(default=True),

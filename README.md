@@ -34,6 +34,17 @@ $ bazel build \
     :hello_world
 ```
 
+## Addons
+
+MXE has many useful libraries, but occasionally there will be something
+you want to add on which is not part of the MXE distribution, such as
+the python interpreter.  Package the header and library resources similarly
+to MXE, put the `.tar.xz` archive into the addons directory, and then
+reference your package in the `deps` section of your `mxe_compilers` rule.
+
+If your addon requires additional runtime components, you can add them
+to the `runtimes` directory.
+
 ## Packaging your executable
 
 You can also use the `pkg_winzip` rule to create a `zip` archive with your
@@ -61,6 +72,10 @@ pkg_winzip(
         # aren't shipping with your package.
         # "winmm.dll",
         # etc...
+    ],
+    zips = [
+        # Any additional content you want to combine into your package
+        # (e.g. "@mxebzl//runtime/python37")
     ],
     out = "whatever.zip", # Optional: defaults to ${name}.zip
 )

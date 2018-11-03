@@ -7,12 +7,15 @@ def _impl_winzip(ctx):
     ]
     if ctx.attr.skip_dlls:
         args += ["--skip_dlls=" + ','.join(ctx.attr.skip_dlls)]
+    if ctx.attr.zips:
+        args += ["--combine_zips=" + ','.join([f.path for f in ctx.files.zips])]
 
     args += [f.path for f in ctx.files.files]
+    print("args ", args)
     ctx.action(
         executable = ctx.executable.zip4win,
         arguments = args,
-        inputs = ctx.files.files + ctx.files.mxe,
+        inputs = ctx.files.files + ctx.files.mxe + ctx.files.zips,
         outputs = [ctx.outputs.out],
         progress_message="Packaging files into " + ctx.outputs.out.basename,
         mnemonic="WinZip"
@@ -30,7 +33,8 @@ _pkg_winzip = rule(
             default=Label("//tools/windows:zip4win"),
             cfg="host",
             executable=True,
-            allow_files=True)
+            allow_files=True),
+        "zips": attr.label_list(allow_files=True),
     },
     outputs = {
         "out":  "%{name}.zip",
