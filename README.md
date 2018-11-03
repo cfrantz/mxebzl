@@ -10,7 +10,7 @@ create the compilers repository and specify your dependencies.
 git_repository(
     name = "mxebzl",
     remote = "https://github.com/cfrantz/mxebzl.git",
-    tag = "20170701_RC01",  # Adjust as needed
+    tag = "20181103_RC02",  # Adjust as needed
 )
 
 load("@mxebzl//tools:repository.bzl", "mxe_compilers")
