@@ -63,6 +63,7 @@ SKIP_DLLS = [
     'CRYPT32.dll',
     'MSI.DLL',
     'RPCRT4.dll',
+    'SETUPAPI.dll',
     'SHLWAPI.dll',
     'VCRUNTIME140.DLL',
     'api-ms-win-crt-conio-l1-1-0.dll',

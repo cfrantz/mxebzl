@@ -27,6 +27,8 @@ import sys
 import urllib
 import urllib2 as u2
 
+DISTRO = 'bionic'
+
 METAPKG = {
     'compiler': [
         'binutils',
@@ -45,6 +47,7 @@ METAPKG = {
         'jpeg',
         'libpng',
         'libwebp',
+        'libsamplerate',
         'ogg',
         'tiff',
         'vorbis',
@@ -57,8 +60,8 @@ PKGS = {
 }
 
 TARGETS = {
-    'win32': 'i686-w64-mingw32.shared',
-    'win64': 'x86-64-w64-mingw32.shared',
+    'shared': 'mxe-x86-64-w64-mingw32.shared',
+    'static': 'mxe-x86-64-w64-mingw32.static',
 }
 
 LOCALS = []
@@ -76,18 +79,18 @@ flags.add_argument('--list', default=False, action='store_true',
                    help='List packages')
 flags.add_argument('--altdest', default='',
                    help='Install packages in altdest, and symlink dest there')
-flags.add_argument('--webroot', default='http://pkg.mxe.cc/repos/tar',
-                   help='Package download location (http://pkg.mxe.cc/repos/tar)')
+flags.add_argument('--webroot', default='https://pkg.mxe.cc/repos/apt/pool/main/m',
+                   help='Package download location (http://pkg.mxe.cc/repos/apt/pool/main/m)')
 flags.add_argument('--tmp', default='/tmp/mxe',
                    help='Temporary download directory (/tmp/mxe)')
 flags.add_argument('--wget_bin', default='/usr/bin/wget',
                    help='Location of wget binary (/usr/bin/wget)')
 flags.add_argument('--tar_bin', default='/bin/tar',
                    help='Location of tar binary (/bin/tar)')
-flags.add_argument('--win32', dest='win32', default=False, action='store_true',
-                   help='Install win32 packages (False)')
-flags.add_argument('--win64', dest='win64', default=False, action='store_true',
-                   help='Install win64 packages (False)')
+flags.add_argument('--shared', dest='shared', default=False, action='store_true',
+                   help='Install shared library packages (False)')
+flags.add_argument('--static', dest='static', default=False, action='store_true',
+                   help='Install static library packages (False)')
 flags.add_argument('--force', action='store_true',
                    help='Install packages even if already installed.')
 
@@ -105,23 +108,38 @@ class AHrefCollector(HTMLParser.HTMLParser):
 
 def download_pkg_list(args):
     print 'Downloading package list.'
-    url = args.webroot + '/mxe-' + TARGETS['win64']
+    url = args.webroot + '/'
     req = u2.urlopen(url)
     html = req.read()
     hc = AHrefCollector()
     hc.feed(html)
-    prefix = 'mxe-' + TARGETS['win64'] + '-'
     for filename in hc.hrefs:
-        filename = filename.replace(prefix, '')
-        filename = urllib.unquote(filename)
-        (pkgname, suffix) = filename.split('_')
-        PKGS[pkgname] = filename
+        if TARGETS['shared'] not in filename:
+            continue
+        pkgname = (filename.replace(TARGETS['shared']+'-', '')
+                   .replace(TARGETS['static']+'_', '')).split('_')
+        PKGS[pkgname[0].replace('/', '')] = pkgname[0]
+
+def resolve_to_archive(dirname):
+    if not dirname.endswith('/'):
+        return dirname
+
+    url = '%s/%s' % (args.webroot, dirname)
+    print("resolve:", url)
+    req = u2.urlopen(url)
+    html = req.read()
+    hc = AHrefCollector()
+    hc.feed(html)
+    for filename in hc.hrefs:
+        if DISTRO in filename:
+            return dirname + filename
+    raise Exception('Cannot resolve %r to a filename' % dirname, dirname)
 
 def collect_addons(args):
     if not args.addons:
         return
 
-    prefix = 'mxe-' + TARGETS['win64'] + '-'
+    prefix = TARGETS['shared'] + '-'
     for filename in os.listdir(args.addons):
         if filename.startswith('mxe-') and filename.endswith('.tar.xz'):
             filename = filename.replace(prefix, '')
@@ -146,16 +164,16 @@ def makedirs(d):
 
 def download_pkg(args, pkg):
     targ = []
-    if args.win32:
-        targ.append(('win32', TARGETS['win32']))
-    if args.win64:
-        targ.append(('win64', TARGETS['win64']))
+    if args.shared:
+        targ.append(('shared', TARGETS['shared']))
+    if args.static:
+        targ.append(('static', TARGETS['static']))
 
     makedirs(args.tmp)
     for name, t in targ:
-        filename = 'mxe-' + t + '-' + PKGS[pkg]
-        url = args.webroot + '/mxe-' + t + '/' + filename
-        local =  os.path.join(args.tmp, filename)
+        filename = resolve_to_archive(t + '-' + PKGS[pkg])
+        url = args.webroot + '/' + filename
+        local =  os.path.join(args.tmp, os.path.basename(filename))
         addon =  os.path.join(args.addons, filename)
 
         # Transform the target and package names to how they appear on the
@@ -198,7 +216,13 @@ def install(args):
         os.chdir(args.dest)
         for filename in LOCALS:
             print 'Installing', filename
-            subprocess.call([args.tar_bin, 'Jxf', filename])
+            if filename.endswith('.deb'):
+                ar = subprocess.Popen(['ar', 'p', filename, 'data.tar.xz'],
+                        stdout=subprocess.PIPE)
+                tar = subprocess.call([args.tar_bin, '--strip-components=4',
+                                       '-Jxf', '-'], stdin=ar.stdout)
+            else:
+                subprocess.call([args.tar_bin, 'Jxf', filename])
     finally:
         os.chdir(cwd)
 

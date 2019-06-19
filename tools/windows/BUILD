@@ -19,9 +19,9 @@ filegroup(
 cc_toolchain_suite(
     name = 'toolchain',
     toolchains = {
-        'win32|compiler': 'cc-compiler-win32',
-        'win64|compiler': 'cc-compiler-win64',
-        'local|compiler': 'cc-compiler-local',
+        'win32|compiler': ':cc-compiler-win32',
+        'win64|compiler': ':cc-compiler-win64',
+        'local|compiler': ':cc-compiler-local',
     },
 )
 

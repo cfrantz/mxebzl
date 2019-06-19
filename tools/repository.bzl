@@ -14,7 +14,7 @@ def _mxe_compiler(ctx):
            'downloader.py',
            '--dest=mxe',
            '--addons=' + str(addons.dirname),
-           '--' + ctx.attr.arch]
+           '--shared']
 
     if ctx.attr.cache:
         cmd.append('--cache')
@@ -42,7 +42,7 @@ mxe_compiler = repository_rule(
     },
 )
 
-def mxe_compilers(arch=['win32', 'win64'], deps=['compiler'], **kwargs):
+def mxe_compilers(arch=['win64'], deps=['compiler'], **kwargs):
     for a in arch:
         mxe_compiler(
             name = "mingw_compiler_" + a,
