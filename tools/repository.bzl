@@ -42,7 +42,7 @@ mxe_compiler = repository_rule(
     },
 )
 
-def mxe_compilers(arch=['win64'], deps=['compiler'], **kwargs):
+def mxe_compilers(arch=['win64', 'win32', 'local'], deps=['compiler'], **kwargs):
     for a in arch:
         mxe_compiler(
             name = "mingw_compiler_" + a,

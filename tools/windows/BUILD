@@ -11,6 +11,8 @@
 #
 package(default_visibility = ["//visibility:public"])
 
+load(':cc_config.bzl', 'cc_toolchain_config')
+
 filegroup(
   name = 'empty',
   srcs = [],
@@ -19,9 +21,9 @@ filegroup(
 cc_toolchain_suite(
     name = 'toolchain',
     toolchains = {
-        'win32|compiler': ':cc-compiler-win32',
-        'win64|compiler': ':cc-compiler-win64',
-        'local|compiler': ':cc-compiler-local',
+        'win32': ':cc-compiler-win32',
+        'win64': ':cc-compiler-win64',
+        'k8': ':cc-compiler-local',
     },
 )
 
@@ -54,18 +56,21 @@ filegroup(
   ],
 )
 
+cc_toolchain_config(
+    name = 'win32_config',
+    cpu = 'win32',
+)
+
 cc_toolchain(
   name = 'cc-compiler-win32',
   all_files = ':mingw_all_files_win32',
   compiler_files = ':mingw_compiler_files_win32',
-  cpu = 'win32',
   dwp_files = ':empty',
-  dynamic_runtime_libs = [':empty'],
   linker_files = ':mingw_linker_files_win32',
   objcopy_files = '//tools/windows/win32:objcopy',
-  static_runtime_libs = [':empty'],
   strip_files = '//tools/windows/win32:strip',
   supports_param_files = 1,
+  toolchain_config = ':win32_config',
 )
 
 filegroup(
@@ -97,32 +102,38 @@ filegroup(
   ],
 )
 
+cc_toolchain_config(
+    name = 'win64_config',
+    cpu = 'win64',
+)
+
 cc_toolchain(
   name = 'cc-compiler-win64',
   all_files = ':mingw_all_files_win64',
   compiler_files = ':mingw_compiler_files_win64',
-  cpu = 'win64',
   dwp_files = ':empty',
-  dynamic_runtime_libs = [':empty'],
   linker_files = ':mingw_linker_files_win64',
   objcopy_files = '//tools/windows/win64:objcopy',
-  static_runtime_libs = [':empty'],
   strip_files = '//tools/windows/win64:strip',
   supports_param_files = 1,
+  toolchain_config = ':win64_config',
+)
+
+cc_toolchain_config(
+    name = 'local_config',
+    cpu = 'local',
 )
 
 cc_toolchain(
     name = "cc-compiler-local",
     all_files = ":empty",
     compiler_files = ":empty",
-    cpu = "local",
     dwp_files = ":empty",
-    dynamic_runtime_libs = [":empty"],
     linker_files = ":empty",
     objcopy_files = ":empty",
-    static_runtime_libs = [":empty"],
     strip_files = ":empty",
     supports_param_files = 1,
+    toolchain_config = ':local_config',
 )
 
 filegroup(
