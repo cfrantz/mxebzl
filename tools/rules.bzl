@@ -2,7 +2,7 @@
 
 def _impl_winzip(ctx):
     args = [
-        "--mxe=" + ctx.files.mxe[0].path,
+        "--mxe=" + ctx.files.mxe[0].dirname,
         "--out=" + ctx.outputs.out.path,
     ]
     if ctx.attr.skip_dlls:
@@ -12,7 +12,7 @@ def _impl_winzip(ctx):
 
     args += [f.path for f in ctx.files.files]
     # print("args ", args)
-    ctx.action(
+    ctx.actions.run(
         executable = ctx.executable.zip4win,
         arguments = args,
         inputs = ctx.files.files + ctx.files.mxe + ctx.files.zips,
@@ -21,16 +21,16 @@ def _impl_winzip(ctx):
         mnemonic="WinZip"
     )
 
-_pkg_winzip = rule(
+pkg_winzip = rule(
     implementation = _impl_winzip,
     attrs = {
         "files": attr.label_list(allow_files=True),
         "skip_dlls": attr.string_list(),
         "mxe": attr.label(
-            mandatory=True,
+            default = "@mxe_compiler//:all",
             allow_files=True),
         "zip4win": attr.label(
-            default=Label("//tools/windows:zip4win"),
+            default=Label("//tools:zip4win"),
             cfg="host",
             executable=True,
             allow_files=True),
@@ -40,12 +40,3 @@ _pkg_winzip = rule(
         "out":  "%{name}.zip",
     },
 )
-
-def pkg_winzip(**kwargs):
-    _pkg_winzip(
-        mxe = select({
-            "@mxebzl//tools/windows:win32_mode": "@mingw_compiler_win32//:mxe",
-            "@mxebzl//tools/windows:win64_mode": "@mingw_compiler_win64//:mxe",
-        }),
-        **kwargs
-    )
